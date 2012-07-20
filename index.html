@@ -1,0 +1,241 @@
+<!DOCTYPE html>
+<meta charset="utf-8">
+<title>Badgemaker Prototype</title>
+<style>
+html {
+  font-family: "Helvetica Neue", Helvetica, sans-serif;
+}
+
+#shape-palette, #icon-palette {
+  line-height: 50px;
+}
+
+#shape-palette .wrapper, #icon-palette .wrapper {
+  padding-top: 0px;
+  padding-right: 20px;
+  vertical-align: top;
+  display: inline-block;
+}
+
+#shape-palette svg, #icon-palette svg {
+  cursor: pointer;
+}
+
+#badge {
+  position: absolute;
+  top: 0px;
+  left: 0px;
+  padding-top: 10px;
+}
+
+#palettes {
+  position: absolute;
+  top: 0px;
+  left: 0px;
+  margin-left: 180px;
+}
+
+#container {
+  position: relative;
+}
+
+input {
+  border: 1px solid black;
+  font-family: inherit;
+  padding: 4px;
+  font-size: 16px;
+}
+</style>
+<h1>Badgemaker Prototype</h1>
+<section id="container">
+  <section id="badge"></section>
+  <section id="palettes">
+    <h3>Choose a shape</h3>
+    <div id="shape-palette"></div>
+    <h3>Choose an icon</h3>
+    <div id="icon-palette"></div>
+    <h3>Choose a base color</h3>
+    <input id="badge-color" class="color" value="FBB945">
+    <h3>Choose an icon color</h3>
+    <input id="icon-color" class="color" value="9A6733">
+  </section>
+</section>
+<script src="jquery.min.js"></script>
+<script src="jscolor/jscolor.js"></script>
+<script src="colors.js"></script>
+<script>
+var SHAPES = [
+  "circle"
+, "heart"
+, "pentagon"
+, "rounded-square"
+, "shield"
+, "square"
+];
+
+var ICONS = [
+  "bomb"
+, "frame"
+, "girl"
+, "tree"
+, "circle-pattern"
+, "circle"
+, "heart"
+, "pentagon"
+, "ribbon"
+, "rounded-square"
+, "shield"
+, "square"
+, "star"
+, "trophy"
+];
+
+function namespaceIds(element, namespace, map) {
+  if (map === undefined)
+    map = {};
+  if (element.hasAttribute("id")) {
+    var id = element.getAttribute("id");
+    map[id] = namespace + id;
+    element.setAttribute("id", map[id]);
+  }
+  for (var i = 0; i < element.attributes.length; i++) {
+    var attr = element.attributes[i];
+    if (attr.value) {
+      var match = attr.value.match(/^url\(#(.+)\)$/);
+      if (match) {
+        var urlId = match[1];
+        if (urlId in map) {
+          attr.value = "url(#" + map[urlId] + ")";
+        } else {
+          console.error(urlId, "not found in map");
+        }
+      }
+    }
+  }
+  for (var i = 0; i < element.childNodes.length; i++) {
+    var child = element.childNodes[i];
+    if (child.nodeType == child.ELEMENT_NODE)
+      namespaceIds(child, namespace, map);
+  }
+}
+
+jQuery.fn.extend({
+  scaleSVG: function(amount) {
+    var css = {};
+    this.width(this.width() * amount);
+    this.height(this.height() * amount);
+    ["webkit", "moz", "ms", "o"].forEach(function(vendorPrefix) {
+      css["-" + vendorPrefix + "-transform"] = "scale(" + amount + ")";
+      css["-" + vendorPrefix + "-transform-origin"] = "0% 0%";
+    });
+    this.css(css);
+    return this;
+  }
+});
+
+function begin() {
+  var shape = $("#shape-palette svg").first();
+  var icon = $("#icon-palette svg").first();
+  
+  function redrawBadge() {
+    var shapeCopy = shape.clone();
+    var shapeWrapper = $('<div></div>').append(shapeCopy);
+    var g = document.createElementNS("http://www.w3.org/2000/svg", "g");
+    var xform = "translate(" + (shape.width() / 2) + ", " +
+                               (shape.height() / 2) + ") " +
+                "scale(0.75) " +
+                "translate(" + (-icon.width() / 2) + ", " +
+                             + (-icon.height() / 2) + ")";
+    g.setAttribute("transform", xform);
+    for (var i = 0; i < icon[0].childNodes.length; i++)
+      g.appendChild(icon[0].childNodes[i].cloneNode(true));
+    shapeCopy[0].appendChild(g);
+    $("#badge").empty().append(shapeWrapper);
+  }
+  
+  $("#shape-palette svg").click(function() {
+    shape = $(this);
+    redrawBadge();
+  });
+
+  $("#icon-palette svg").click(function() {
+    icon = $(this);
+    redrawBadge();
+  });
+
+  redrawBadge();
+}
+
+function shiftSolidColors(svg, amount) {
+  var shapes = svg.querySelectorAll("[fill]");
+  for (var i = 0; i < shapes.length; i++) {
+    var shape = shapes[i];
+    var color;
+    if (!shape.hasAttribute("data-original-fill")) {
+      color = shape.getAttribute("fill");
+      shape.setAttribute("data-original-fill", color);
+    }
+    color = shape.getAttribute("data-original-fill");
+    if (color && color.length && color[0] == "#") {
+      var hsv = new RGB(color).toHSV();
+      hsv = new HSV(hsv.h + amount.h, hsv.s + amount.s, hsv.v + amount.v);
+      shape.setAttribute("fill", hsv.toRGB());
+    }
+  }
+}
+
+function shiftGradients(svg, amount) {
+  var stops = svg.querySelectorAll("stop");
+  for (var i = 0; i < stops.length; i++) {
+    var stop = stops[i];
+    var color;
+    if (!stop.hasAttribute("data-original-stop-color")) {
+      color = stop.getAttribute("style").match(/stop-color:(.+)/)[1];
+      stop.setAttribute("data-original-stop-color", color);
+    }
+    color = stop.getAttribute("data-original-stop-color");
+    var hsv = new RGB(color).toHSV();
+    hsv = new HSV(hsv.h + amount.h, hsv.s + amount.s, hsv.v + amount.v);
+    stop.setAttribute("style", "stop-color:" + hsv.toRGB());
+  }
+}
+
+function makeShifter(shiftFunc) {
+  return function() {
+    var dest = new RGB("#" + $(this).val()).toHSV();
+    var base = new RGB($(this).attr("data-base-color")).toHSV();
+    shiftFunc(document, {
+      h: dest.h - base.h,
+      s: dest.s - base.s,
+      v: dest.v - base.v
+    });
+  };
+}
+
+$(window).ready(function() {
+  var deferreds = [];
+  SHAPES.forEach(function(shape) {
+    var filename = "shapes/" + shape + ".svg";
+    var wrapper = $('<div class="wrapper"></div>').appendTo("#shape-palette");
+    deferreds.push(jQuery.get(filename, function(document) {
+      namespaceIds(document.documentElement, "SHAPE_" + shape + "_");
+      wrapper.append(document.documentElement).scaleSVG(0.25);
+    }));
+  });
+  ICONS.forEach(function(icon) {
+    var filename = "icons/" + icon + ".svg";
+    var wrapper = $('<div class="wrapper"></div>').appendTo("#icon-palette");
+    deferreds.push(jQuery.get(filename, function(document) {
+      namespaceIds(document.documentElement, "ICON_" + icon + "_");
+      wrapper.append(document.documentElement).scaleSVG(0.25);
+    }));
+  });
+  $("input.color").each(function() {
+    $(this).attr("data-base-color", "#" + $(this).val());
+  });
+  $("input#badge-color").bind("change", makeShifter(shiftGradients));
+  $("input#icon-color").bind("change", makeShifter(shiftSolidColors));
+
+  jQuery.when.apply(jQuery, deferreds).done(begin);
+});
+</script>
