@@ -42,10 +42,28 @@ html {
 input {
   border: 1px solid black;
   font-family: inherit;
+  margin-bottom: 2%;
   padding: 4px;
   font-size: 16px;
+  width: 80%
 }
 </style>
+   <body>
+    <header>
+      <h1>
+        BadgeMaker
+      </h1>
+    </header>
+
+    <main>
+      <p>The Deets</p>
+      <form>
+        <input id="name" type="text" placeholder="What is your badge called?"> <br>
+        <input id="description" type="text" minlength="600" placeholder="What is your badge about?"><br>
+        <input id="criteria" type="text" maxlength="600" placeholder="Insert a link to the assignment or criteria"><br>
+        <input id="Description" type="textarea" maxlength="280" placeholder="Breifly describe the criteria someone must meet to earn this badge."><br>
+        <button type="submit">post</button>
+      </form>
 <a href="https://github.com/toolness/badgemaker-prototype"><img style="position: absolute; top: 0; right: 0; border: 0;" src="https://s3.amazonaws.com/github/ribbons/forkme_right_darkblue_121621.png" alt="Fork me on GitHub"></a>
 <h1>Badgemaker Prototype</h1>
 <section id="container">
@@ -61,6 +79,8 @@ input {
     <input id="icon-color" class="color" value="9A6733">
   </section>
 </section>
+     </main>
+</body>
 <script src="jquery.min.js"></script>
 <script src="jscolor/jscolor.js"></script>
 <script src="colors.js"></script>
